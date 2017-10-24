@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         Luminate Duplicate Management Automation
-// @version      0.1
+// @name         Merge Magic - Luminate Duplicate Merge Automation
+// @version      0.9
 // @description  Helps define master record selection rules and field selection logic to automate the duplicate merge process.
 // @author       Erland Sanborn
 // @match        https://*.force.com/apex/cv__duplicate_merge_fields?*
@@ -30,7 +30,7 @@
     function buildInterface() {
 
 
-		config_select = $("<select id='config_select' style='margin: 10px;' />").change(function() {
+	config_select = $("<select id='config_select' style='margin: 10px;' />").change(function() {
             if ( $(this).val() !== '' ) {
                 loadRuleset($(this).val());
             }
