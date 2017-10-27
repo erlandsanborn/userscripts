@@ -175,7 +175,7 @@
 	display: inline-block;
 	position: relative;
 	line-height: normal;
-	margin-right: .1em;
+	margin: 5px;
 	cursor: pointer;
 	vertical-align: middle;
 	text-align: center;
