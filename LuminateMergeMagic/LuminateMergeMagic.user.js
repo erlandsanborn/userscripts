@@ -7,6 +7,8 @@
 // @match        https://*.force.com/apex/duplicate_merge_fields?*
 // @match        https://*.force.com/apex/duplicate_merge_accounts?*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
+// @require      https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
+
 // ==/UserScript==
 
 (function() {
@@ -20,6 +22,7 @@
     var masterSelectionRulesPanel;
     var masterRecord;
 
+
     document.onLoad = init();
 
     function init() {
@@ -29,29 +32,34 @@
 
     function buildInterface() {
 
+        $("head").append("<link rel='stylesheet' type='text/css' href='https://erlandsanborn.github.io/userscripts/LuminateMergeMagic/style.css' />");
 
-	config_select = $("<select id='config_select' style='margin: 10px;' />").change(function() {
+        var header = $("<div id='merge_ui_header' />");
+
+        config_select = $("<select id='config_select' style='margin: 10px;' />").change(function() {
             if ( $(this).val() !== '' ) {
                 loadRuleset($(this).val());
             }
         });
 
-        masterSelectionRulesPanel = $("<table id='master_selection_rules' style='width: 50%; margin: 15px;' />");
-		var saveBtn = $("<a style='margin: 10px;' href='javascript:void(0);'>Save Rule Set</a>").click(saveFieldRules);
+        masterSelectionRulesPanel = $("<table id='master_selection_rules' style='margin: 10px 0;' />");
+		var saveBtn = $("<span>Save Rule Set</span>").button({
+
+        }).click(saveFieldRules);
 
         var masterHeader = $("<thead><tr><th>Sort Field</th><th>Sort Type</th><th id='actions'></th></tr></thead>");
-        var addLink = $("<a href='javascript:void(0);' style='margin: 10px;'>Add Master Sort Field</a>").click(function() {
+        var addLink = $("<span>Add Master Sort Field</span>").button().click(function() {
             addMasterFieldSelector("createdDate", "descending");
         });
 
-        $(masterHeader).find("#actions").append(addLink);
+        $(masterHeader).find("#actions");
         $(masterSelectionRulesPanel).append(masterHeader);
 
-        var recalculateMaster = $("<p align='center'><a href='javascript:void(0);' style='margin: 10px;'>Select Master</a></p>")
-            .click(selectMaster);
+        var recalculateMaster = $("<span align='center'>Select Master</span>")
+            .button().click(selectMaster);
 
         var ruleName = $("<label style='margin: 10px;'>Ruleset Name: <input type='text' id='client_name' value='Default' />");
-        var toggleStaticFieldsBtn = $("<p align='center'><a style='margin: 10px;' href='javascript:void(0);'>Show/Hide Static Fields</a></p>").click(toggleNonInputRows);
+        var toggleStaticFieldsBtn = $("<span align='center'>Show/Hide Static Fields</span>").button().click(toggleNonInputRows);
 
         $("#mergeDescription").append("<label style='margin: 10px;'>Select Merge Rule Set</label>")
             .append(config_select)
@@ -59,11 +67,21 @@
             .append(saveBtn)
             .append(masterSelectionRulesPanel);
 
-        $(".mergeactions").append(toggleStaticFieldsBtn).append(recalculateMaster);
+        var recalculateFieldRules = $("<span align='center'>Re-Apply Field Rules</span>").button().click(applyFieldSelectionRules);
+
+        var headerTitle = $("<h4>Master Record Sort Order</h4>");
+        $(header).append(headerTitle).append(masterSelectionRulesPanel).append(addLink).append(recalculateMaster);
+        $("#mergeDescription").append(header);
+
+        var fieldActions = $("<div style='clear: both;' />").append(toggleStaticFieldsBtn).append(recalculateFieldRules);
+        $(".mergeactions").append(fieldActions);
 
         // render rule dropdowns
+
         $(".detailList tr:has(input)").each(function(i) {
+
             var label = $(this).find("td.labelCol").text().trim();
+            $(this).find("td.labelCol").html("<div class='fieldName'>" + label + "</div>");
             var section = $(this).parent().prev().find("h4").text().trim();
             label = section + " - " + label;
             var cell = $("<td nowrap='nowrap' class='field_rule' name='" + label + "' />");
@@ -80,7 +98,9 @@
                 .append("<option value='newest-value'>Value Descending</option>")
                 .append("<option value='oldest-value'>Value Ascending</option>")
                 .append("<option value='len-asc'>Char Length Ascending</option>")
-                .append("<option value='len-dec'>Char Length Descending</option>");
+                .append("<option value='len-dec'>Char Length Descending</option>")
+                .append("<option value='other-asc'>Use Field Ascending</option>")
+                .append("<option value='other-dec'>Use Field Descending</option>");
 
             $(input).change(function() {
                 fieldRules[label].rule = $(this).val();
@@ -92,16 +112,15 @@
             $(this).append(cell);
         });
 
-        $("#masterselect .contacthead").addClass('data_column');
+        $("#masterselect .contacthead").addClass('data_column');//.css("height", "120px");
+        $("#masterselect > div").css("height", "auto");
+        $(".mergeactions").css("border", "none");
+        //$(".mergeactions");//.css("height", "128px");
         $(".scrollcontainer").css('height', 'auto').css('width', 'auto');
-        $("#mergefields .mergecell").css('width', '231px');
-        $("#masterselect").css("width", "auto").find(".clearingBox").remove();
-
-        var recalculateFieldRules = $("<p align='left' style='position: absolute; bottom: 0;'><a href='javascript:void(0);'>Re-Apply Field Rules</a></p>")
-            .click(applyFieldSelectionRules);
-        var contactHead = $("<div class='contacthead rule_column' />").css("height","108px").append(recalculateFieldRules);
-
-        $("#masterselect").append(contactHead).append("<div class='clearingBox'></div>");
+        $("#mergefields .mergecell").css('max-width', '231px');
+        $("#masterselect").css("width", "auto");//.find(".clearingBox").remove();
+        $(".information").remove();
+        //$(".mergeactions").css("width", $(".labelCol:first").width() + "px");
         toggleNonInputRows();
     }
 
@@ -192,9 +211,10 @@
             records.push(record);
             // add select all links to each column
             var id =  $(this).find("input.mergeChoice").attr("id");
-            var selectAll = $("<div align='center'><a href='javascript:void(0);'>Select All Fields</a></div>").click(function() {
+            var selectAllBtn = $("<span>Select All Fields</span>").button().click(function() {
                 $("input.field-"+id).click();
             });
+            var selectAll = $("<div style='text-align: center; width: 100%' />").append(selectAllBtn);
             $(this).append(selectAll);
         });
 
@@ -206,6 +226,12 @@
                 $(this).parent().append("false");
         });
 
+        $(".field-value-wrapper span").each(function() {
+            // remove $0.00, treat as blanks.
+            if ( $(this).text() === "$0.00" ) {
+                $(this).text("");
+            }
+        });
 
         // build record objects
         $(".detailList tr:has(.labelCol)").each(function(i) {
@@ -234,7 +260,6 @@
 
     function populateMasterRules() {
         for ( var i = 0; i < masterRules.length; i++ ) {
-            //for ( var field in masterRules ) {
             addMasterFieldSelector(masterRules[i].fieldName, masterRules[i].type); // default master sort field
         }
     }
@@ -254,12 +279,9 @@
     }
 
     function selectMaster() {
-        console.log("select master");
-        // iterate on rules, apply sort, detect data type if possible
         $("#master_selection_rules tr.masterSortField").each(function() {
 			var field = $(this).find(".field_sort").val();
 			var order = $(this).find(".field_sort_type").val();
-            console.log("sorting master", field, order);
             sortRecords(field, order);
 		});
 
@@ -372,7 +394,7 @@
 		var fieldCell = $("<td />").append(defaultMasterSelectRule);
 		var typeCell = $("<td />").append(defaultSortType);
 
-		var removeLink = $("<a href='javascript:void(0);'>Remove</a>").click(function() {
+		var removeLink = $("<span'>Remove</span>").button().click(function() {
 			$(row).remove();
 		});
 		var addRemove = $("<td />").append(removeLink);
@@ -385,7 +407,6 @@
     function saveFieldRules() {
         var transaction = db.transaction(["client_duplicate_merge_rules"], "readwrite");
         var objectStore = transaction.objectStore("client_duplicate_merge_rules");
-        //var fieldRules = {}, masterRules = {};
         var client_name = $("#client_name").val();
 
         console.log("saving: ", fieldRules);
@@ -405,7 +426,6 @@
 		$("#master_selection_rules .masterSortField").each(function() {
 			var field = $(this).find(".field_sort").val();
 			var type = $(this).find(".field_sort_type").val();
-
 			masterRules.push({
                 fieldName: field,
 				type: type
@@ -432,27 +452,15 @@
         };
     }
 
-    function getRecordWithMaxDate(field) {
-        var res = Math.max.apply(Math,records.map(function(o){return o[field];}));
-        var obj = records.find(function(o){ return o[field] == res; });
-
-        return obj;
-    }
-    function getRecordWithMinDate(field) {
-        var res = Math.min.apply(Math,records.map(function(o){return o[field];}));
-        var obj = records.find(function(o){ return o[field] == res; });
-
-        return obj;
-    }
-
     function makeSortable(field) {
         var value = field.value;
         if ( isDate(field.value) )
             value = Date.parse(field.value);
         else if( isCurrency(field.value) ) {
             // check for monetary range $X - $Z, reduce to X
-            var values = field.value.split("-");
-            value = parseFloat(values[0].replace("$", "").trim());
+            var v = (field.value.indexOf("-") >= 0) ? field.value.split("-")[0] : field.value;
+            value = parseFloat(v.replace("$", "").replace(",","").trim());
+            console.log("parsing " + field.value + ": " + value);
         }
         else if ( isInteger(field.value) ) {
             value = parseInt(field.value);
