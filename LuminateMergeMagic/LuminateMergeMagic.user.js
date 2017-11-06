@@ -17,11 +17,11 @@
 
     var ruleset;
     var records;
+    var sortedRecords = [];
     var fieldRules = {}, masterRules = [];
     var config_select;
     var masterSelectionRulesPanel;
     var masterRecord;
-
 
     document.onLoad = init();
 
@@ -29,6 +29,8 @@
         buildInterface();
         initDB();
     }
+
+    // on master record change, swap sortedRecords[0] with index of selected master column
 
     function buildInterface() {
 
@@ -56,7 +58,10 @@
         $(masterSelectionRulesPanel).append(masterHeader);
 
         var recalculateMaster = $("<span align='center'>Select Master</span>")
-            .button().click(selectMaster);
+            .button().click(function() {
+                selectMaster();
+                applyFieldSelectionRules();
+            });
 
         var ruleName = $("<label style='margin: 10px;'>Ruleset Name: <input type='text' id='client_name' value='Default' />");
         var toggleStaticFieldsBtn = $("<span align='center'>Show/Hide Static Fields</span>").button().click(toggleNonInputRows);
@@ -183,7 +188,8 @@
                     $("td.field_rule[name='" + sortField + "'] select").val(fieldRules[sortField].rule);
                     $("td.field_rule[name='" + sortField + "'] input.populate_blanks").prop('checked', fieldRules[sortField].overwriteBlanks);
                 }
-                 // populate master sort area with dropdowns
+
+                // populate master sort area with dropdowns
                 populateMasterRules();
                 selectMaster();
                 applyFieldSelectionRules();
@@ -194,10 +200,14 @@
 
     function parsePageFields() {
         records = [];
+
         $("#masterselect .data_column").each(function(i) {
+            var id = $(this).attr("id").replace("contacthead-","");
             var createdDate = Date.parse($(this).find(".contacthead-extra:contains('Created Date') span").text().trim());
             var user = $(this).find(".contacthead-extra:contains('Created By ID') span").text().trim();
             var onlineRecord = ( user == "Integration User" || user == "Convio Connector" );
+            var masterBtn = $(this).find(".mergeChoice");
+
             var record = {
                 createdDate: {
                     value: createdDate,
@@ -206,12 +216,13 @@
                 onlineRecord: {
                     value: onlineRecord ? "true" : "false"
                 },
-                masterBtn: $(this).find(".mergeChoice")
+                masterBtn: masterBtn
             };
-            records.push(record);
+            records[i] = record;
+
             // add select all links to each column
-            var id =  $(this).find("input.mergeChoice").attr("id");
-            var selectAllBtn = $("<span>Select All Fields</span>").button().click(function() {
+            var selectAllBtn = $("<span id='"+id+"'>Select All Fields</span>").button().click(function() {
+                var id = $(this).attr("id");
                 $("input.field-"+id).click();
             });
             var selectAll = $("<div style='text-align: center; width: 100%' />").append(selectAllBtn);
@@ -284,9 +295,23 @@
 			var order = $(this).find(".field_sort_type").val();
             sortRecords(field, order);
 		});
-
-        masterRecord = records[0];
+        sortedRecords = records.slice(0);
+        masterRecord = sortedRecords[0];
         masterRecord.masterBtn.click();
+        for ( var i in records ) {
+            $(records[i].masterBtn).click(function() {
+                // swap with auto-selected master
+                console.log("swapping", i, records, sortedRecords);
+                var tmp = records[0];
+                records[0] = records[i];
+                records[i] = tmp;
+                sortedRecords[0] = sortedRecords[i];
+                sortedRecords[i] = tmp;
+                masterRecord = sortedRecords[0];
+                console.log("swapped", i, records, sortedRecords);
+                applyFieldSelectionRules();
+            });
+        }
     }
 
     function applyFieldSelectionRules() {
@@ -305,13 +330,7 @@
 
         switch (rule) {
             case "master" :
-                // re-sort records on master rules
-                $("#master_selection_rules tr.masterSortField").each(function() {
-                    var field = $(this).find(".field_sort").val();
-                    var order = $(this).find(".field_sort_type").val();
-                    sortRecords(field, order);
-                });
-
+                records = sortedRecords.slice(0); // copying originally sorted master array, resorting is unpredictable when one or more fields match
                 break;
             case "newest-record":
                 sortRecords("createdDate", "descending");
@@ -326,7 +345,7 @@
                 sortRecords(field, "ascending");
                 break;
             case "len-asc":
-                var sortedRecords = records.sort(function(a, b) {
+                records.sort(function(a, b) {
                     var va = makeSortable(a[field]);
                     var vb = makeSortable(b[field]);
                     if ( vb === null ) return -1;
@@ -335,7 +354,7 @@
                 });
                 break;
             case "len-dec":
-                var sortedRecords = records.sort(function(a, b) {
+                 records.sort(function(a, b) {
                     var va = makeSortable(a[field]);
                     var vb = makeSortable(b[field]);
                     if ( vb === null ) return -1;
@@ -409,8 +428,6 @@
         var objectStore = transaction.objectStore("client_duplicate_merge_rules");
         var client_name = $("#client_name").val();
 
-        console.log("saving: ", fieldRules);
-
         $(".field_rule").each(function() {
             var select = $(this).find("select");
             var fieldName = $(select).attr("field_name");
@@ -460,7 +477,6 @@
             // check for monetary range $X - $Z, reduce to X
             var v = (field.value.indexOf("-") >= 0) ? field.value.split("-")[0] : field.value;
             value = parseFloat(v.replace("$", "").replace(",","").trim());
-            console.log("parsing " + field.value + ": " + value);
         }
         else if ( isInteger(field.value) ) {
             value = parseInt(field.value);
