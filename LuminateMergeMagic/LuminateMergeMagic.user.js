@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Merge Magic - Luminate Duplicate Merge Automation
-// @version      0.9
+// @version      1.0
 // @description  Helps define master record selection rules and field selection logic to automate the duplicate merge process.
 // @author       Erland Sanborn
 // @match        https://*.force.com/apex/cv__duplicate_merge_fields?*
