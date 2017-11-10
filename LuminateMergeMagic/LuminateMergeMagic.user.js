@@ -82,15 +82,16 @@
         $(".mergeactions").append(fieldActions);
 
         // render rule dropdowns
-
         $(".detailList tr:has(input)").each(function(i) {
-
-            var label = $(this).find("td.labelCol").text().trim();
+            var labelCell = $(this).find("td.labelCol");
+            var label = $(labelCell).text().trim();
             $(this).find("td.labelCol").html("<div class='fieldName'>" + label + "</div>");
+
             var section = $(this).parent().prev().find("h4").text().trim();
             label = section + " - " + label;
             var cell = $("<td nowrap='nowrap' class='field_rule' name='" + label + "' />");
-            var input = $("<select field_name='" + label + "' />");
+
+            var input = $("<select class='fieldRule' field_name='" + label + "' />");
             var populateBlanks = $("<label><input field_name='" + label + "' type='checkbox' checked class='populate_blanks' /> Fill Blanks</label>")
             .change(function() {
                 saveFieldRules();
@@ -104,16 +105,28 @@
                 .append("<option value='oldest-value'>Value Ascending</option>")
                 .append("<option value='len-asc'>Char Length Ascending</option>")
                 .append("<option value='len-dec'>Char Length Descending</option>")
-                .append("<option value='other-asc'>Use Field Ascending</option>")
-                .append("<option value='other-dec'>Use Field Descending</option>");
+                .append("<option value='field'>Field Link</option>");
+
 
             $(input).change(function() {
                 fieldRules[label].rule = $(this).val();
+                console.log($(this).val());
+                if ( $(this).val() === "field" ) {
+                    $(cell).find("select.linkedField").show();
+                }
+                else {
+                    $(cell).find("select.linkedField").hide();
+                }
                 applyRuleTo(label);
                 saveFieldRules();
             });
 
-            $(cell).append(input).append(populateBlanks);
+            var linkedFieldInput = $("<select class='linkedField' />").hide();
+            // append options for all fields
+
+
+
+            $(cell).append(input).append(linkedFieldInput).append(populateBlanks);
             $(this).append(cell);
         });
 
@@ -187,6 +200,9 @@
                     fieldRules[sortField] = ruleset.fieldRules[sortField];
                     $("td.field_rule[name='" + sortField + "'] select").val(fieldRules[sortField].rule);
                     $("td.field_rule[name='" + sortField + "'] input.populate_blanks").prop('checked', fieldRules[sortField].overwriteBlanks);
+                    $("select.linkedField").each(function() {
+                        $(this).append("<option value='" + sortField + "'>" + sortField + "</option>");
+                    });
                 }
 
                 // populate master sort area with dropdowns
@@ -249,6 +265,8 @@
             var label = $(this).find("td.labelCol").text().trim();
             // get section h4 header, use as field prefix (occasional duplicate field names)
             var section = $(this).parent().prev().find("h4").text().trim();
+            // populate field-dependent rules
+            $(this).find(".linkedField").append("<option value='" + label + "' />");
 
             label = section + " - " + label;
             if ( fieldRules[label] === undefined ) {
@@ -265,7 +283,6 @@
                     radioBtn: $(this).find(".field-input-wrapper input")
                 };
             });
-
         });
     }
 
@@ -346,21 +363,30 @@
                 break;
             case "len-asc":
                 records.sort(function(a, b) {
-                    var va = makeSortable(a[field]);
-                    var vb = makeSortable(b[field]);
-                    if ( vb === null ) return -1;
-                    if ( va === null ) return 1;
-                    return va.length - vb.length;
+                    if ( b[field].value === null ) return -1;
+                    if ( a[field].value === null ) return 1;
+                    return a[field].value.length - b[field].value.length;
                 });
                 break;
             case "len-dec":
                  records.sort(function(a, b) {
-                    var va = makeSortable(a[field]);
-                    var vb = makeSortable(b[field]);
-                    if ( vb === null ) return -1;
-                    if ( va === null ) return 1;
-                    return vb.length - va.length;
+                    if ( b[field].value === null ) return -1;
+                    if ( a[field].value === null ) return 1;
+                    return b[field].value.length - a[field].value.length;
                 });
+                break;
+            case "field":
+                // find record with selected field, choose
+                var linkedField = rule.fieldLink;
+                for ( var i = 0; i < records.length; i++ ) {
+                    var record = records[i];
+                    console.log(record, linkedField, record[linkedField]);
+                    if ( record[linkedField].radioBtn !== undefined && $(record[linkedField].radioBtn).is(":checked") ) {
+                        target_record = records[i];
+                        target_record[field].radioBtn.click();
+                        return;
+                    }
+                }
                 break;
             default:
         }
@@ -429,15 +455,18 @@
         var client_name = $("#client_name").val();
 
         $(".field_rule").each(function() {
-            var select = $(this).find("select");
+            var select = $(this).find("select.fieldRule");
             var fieldName = $(select).attr("field_name");
             var rule = $(select).val();
             var overwriteBlanks = $(this).find(".populate_blanks").is(":checked");
+            var fieldLink = $(this).find("select.linkedField").val();
             fieldRules[fieldName] = {
                 fieldName: fieldName,
 				rule: rule,
-				overwriteBlanks: overwriteBlanks
+				overwriteBlanks: overwriteBlanks,
+                fieldLink: fieldLink
 			};
+            console.log(fieldRules[fieldName]);
         });
         masterRules = [];
 		$("#master_selection_rules .masterSortField").each(function() {
@@ -503,6 +532,5 @@
     function toggleNonInputRows() {
         $(".detailList tr:not(:has(input))").toggle();
     }
-
 
 })();
