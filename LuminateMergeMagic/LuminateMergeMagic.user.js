@@ -74,14 +74,15 @@
 
         var recalculateFieldRules = $("<span align='center'>Re-Apply Field Rules</span>").button().click(applyFieldSelectionRules);
 
-        var headerTitle = $("<h4>Master Record Sort Order</h4>");
+        var headerTitle = $("<h4>Master Record Sort Order</h4>").css("padding-left", "28px");
         var accordionBody = $("<div />").append(masterSelectionRulesPanel).append(addLink).append(recalculateMaster);
         $(header).append(headerTitle).append(accordionBody);
         $("#mergeDescription").append(header);
         $(header).accordion({
             collapsible: true,
-            active: false
-        });
+            active: false,
+            heightStyle: "content"
+        }).css("width", "auto");
 
         var fieldActions = $("<div style='clear: both;' />").append(toggleStaticFieldsBtn).append(recalculateFieldRules);
         $(".mergeactions").append(fieldActions);
