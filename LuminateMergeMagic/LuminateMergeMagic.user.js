@@ -45,16 +45,15 @@
         });
 
         masterSelectionRulesPanel = $("<table id='master_selection_rules' style='margin: 10px 0;' />");
-		var saveBtn = $("<span>Save Rule Set</span>").button({
-
-        }).click(saveFieldRules);
+		var saveBtn = $("<span>Save Rule Set</span>").button().click(saveFieldRules);
+        var exportBtn = $("<span>Export Rule Set</span>").button().click(exportRuleset);
+        var importBtn = $("<span>Import Rule Set</span>").button().click(importRuleset);
 
         var masterHeader = $("<thead><tr><th>Sort Field</th><th>Sort Type</th><th id='actions'></th></tr></thead>");
         var addLink = $("<span>Add Master Sort Field</span>").button().click(function() {
             addMasterFieldSelector("createdDate", "descending");
         });
 
-        $(masterHeader).find("#actions");
         $(masterSelectionRulesPanel).append(masterHeader);
 
         var recalculateMaster = $("<span align='center'>Select Master</span>")
@@ -70,13 +69,19 @@
             .append(config_select)
             .append(ruleName)
             .append(saveBtn)
-            .append(masterSelectionRulesPanel);
+            .append(exportBtn)
+            .append(importBtn);
 
         var recalculateFieldRules = $("<span align='center'>Re-Apply Field Rules</span>").button().click(applyFieldSelectionRules);
 
         var headerTitle = $("<h4>Master Record Sort Order</h4>");
-        $(header).append(headerTitle).append(masterSelectionRulesPanel).append(addLink).append(recalculateMaster);
+        var accordionBody = $("<div />").append(masterSelectionRulesPanel).append(addLink).append(recalculateMaster);
+        $(header).append(headerTitle).append(accordionBody);
         $("#mergeDescription").append(header);
+        $(header).accordion({
+            collapsible: true,
+            active: false
+        });
 
         var fieldActions = $("<div style='clear: both;' />").append(toggleStaticFieldsBtn).append(recalculateFieldRules);
         $(".mergeactions").append(fieldActions);
@@ -449,6 +454,51 @@
 		$(masterSelectionRulesPanel).append(row);
     }
 
+    var reader;
+    function importRuleset() {
+        var fileInput = $("<input type='file' />").change(function() {
+            reader = new FileReader();
+            reader.onload = function (e) {
+                console.log(e.target.result);
+                ruleset = JSON.parse(e.target.result);
+                $("#master_selection_rules tr.masterSortField").remove();
+                masterRules = [];
+                for ( var i = 0; i < ruleset.masterRules.length; i++ ) {
+                    masterRules[i] = ruleset.masterRules[i];
+                }
+
+                for ( var sortField in ruleset.fieldRules ) {
+                    fieldRules[sortField] = ruleset.fieldRules[sortField];
+                    $("td.field_rule[name='" + sortField + "'] select").val(fieldRules[sortField].rule);
+                    $("td.field_rule[name='" + sortField + "'] input.populate_blanks").prop('checked', fieldRules[sortField].overwriteBlanks);
+                    $("select.linkedField").each(function() {
+                        $(this).append("<option value='" + sortField + "'>" + sortField + "</option>");
+                    });
+                }
+
+                // populate master sort area with dropdowns
+                populateMasterRules();
+                selectMaster();
+                applyFieldSelectionRules();
+            };
+            reader.readAsText(this.files[0]);
+
+        }).click();
+    }
+
+    function exportRuleset() {
+        // create/save json object data
+        download(JSON.stringify(ruleset), ruleset.client_name + ".txt", 'text/plain');
+    }
+
+    function download(text, name, type) {
+        var a = document.createElement("a");
+        var file = new Blob([text], {type: type});
+        a.href = URL.createObjectURL(file);
+        a.download = name;
+        a.click();
+    }
+
     function saveFieldRules() {
         var transaction = db.transaction(["client_duplicate_merge_rules"], "readwrite");
         var objectStore = transaction.objectStore("client_duplicate_merge_rules");
@@ -490,6 +540,7 @@
         };
         transaction.oncomplete = function(event) {
             console.log("Ruleset Saved");
+            ruleset = data;
         };
 
         transaction.onerror = function(event) {
