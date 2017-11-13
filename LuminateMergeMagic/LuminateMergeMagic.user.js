@@ -74,7 +74,7 @@
 
         var recalculateFieldRules = $("<span align='center'>Re-Apply Field Rules</span>").button().click(applyFieldSelectionRules);
 
-        var headerTitle = $("<h4>Master Record Sort Order</h4>").css("padding-left", "28px");
+        var headerTitle = $("<h4>Master Record Sort Order</h4>").css("padding-left", "28px").css("outline", "none");
         var accordionBody = $("<div />").append(masterSelectionRulesPanel).append(addLink).append(recalculateMaster);
         $(header).append(headerTitle).append(accordionBody);
         $("#mergeDescription").append(header);
@@ -141,7 +141,7 @@
         $(".mergeactions").css("border", "none");
         //$(".mergeactions");//.css("height", "128px");
         $(".scrollcontainer").css('height', 'auto').css('width', 'auto');
-        $("#mergefields .mergecell").css('max-width', '231px');
+        $("#mergefields .mergecell").css('width', '230px');
         $("#masterselect").css("width", "auto");//.find(".clearingBox").remove();
         $(".information").remove();
         //$(".mergeactions").css("width", $(".labelCol:first").width() + "px");
