@@ -167,7 +167,7 @@
                     cursor.continue();
                 }
                 else {
-                    var defaultRuleset = $(config_select).val();
+                    var defaultRuleset = ($.cookie("lastRuleset") === undefined) ? $(config_select).val() : $.cookie("lastRuleset");
                     if ( defaultRuleset !== '' ) {
                         $("#client_name").val(defaultRuleset);
                         loadRuleset(defaultRuleset);
@@ -191,6 +191,7 @@
     function loadRuleset(client_name) {
         if ( client_name !== null ) {
             console.log("loading " + client_name + " ruleset");
+            $.cookie("lastRuleset", client_name);
             var transaction = db.transaction(["client_duplicate_merge_rules"]);
             var objectStore = transaction.objectStore("client_duplicate_merge_rules");
             var request = objectStore.get(client_name);
@@ -232,6 +233,7 @@
             var masterBtn = $(this).find(".mergeChoice");
 
             var record = {
+                recordId : id,
                 createdDate: {
                     value: createdDate,
                     radioBtn: null
@@ -322,6 +324,14 @@
         sortedRecords = records.slice(0);
         masterRecord = sortedRecords[0];
         masterRecord.masterBtn.click();
+        // if master is not selected record on account page, swap with selected
+        if ( document.location.href.indexOf("duplicate_merge_accounts") > 0 ) {
+            var selectedId = $(".contacthead-masterselected").attr("id").replace("contacthead-","");
+            if ( masterRecord.recordId != selectedId ) {
+                //for ( var i = 0; i < rec
+                console.log("swap account master");
+            }
+        }
         for ( var i in records ) {
             $(records[i].masterBtn).click(function() {
                 // swap with auto-selected master
@@ -463,6 +473,7 @@
             reader.onload = function (e) {
                 console.log(e.target.result);
                 ruleset = JSON.parse(e.target.result);
+                $.cookie("lastRuleset", ruleet.client_name);
                 $("#master_selection_rules tr.masterSortField").remove();
                 masterRules = [];
                 for ( var i = 0; i < ruleset.masterRules.length; i++ ) {
@@ -482,6 +493,7 @@
                 populateMasterRules();
                 selectMaster();
                 applyFieldSelectionRules();
+                saveFieldRules();
             };
             reader.readAsText(this.files[0]);
 
