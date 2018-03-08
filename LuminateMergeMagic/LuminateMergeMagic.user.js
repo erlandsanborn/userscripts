@@ -5,7 +5,6 @@
 // @author       Erland Sanborn
 // @match        https://*.force.com/apex/cv__duplicate_merge_fields?*
 // @match        https://*.force.com/apex/duplicate_merge_fields?*
-// @match        https://*.force.com/apex/duplicate_merge_accounts?*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
 // @require      https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js
