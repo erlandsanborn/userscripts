@@ -5,6 +5,8 @@
 // @author       Erland Sanborn
 // @match        https://*.force.com/apex/cv__duplicate_merge_fields?*
 // @match        https://*.force.com/apex/duplicate_merge_fields?*
+// @match        https://*.force.com/apex/duplicate_merge_accounts?*
+// @match        https://*.force.com/apex/duplicate_merge_accounts?*
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js
 // @require      https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js
@@ -26,15 +28,29 @@
     document.onLoad = init();
 
     function init() {
-        buildInterface();
-        initDB();
+        $("head").append("<link rel='stylesheet' type='text/css' href='https://erlandsanborn.github.io/userscripts/LuminateMergeMagic/style.css' />");
+        if ( document.location.href.indexOf('duplicate_merge_accounts') >= 0 ) {
+            toggleNonInputRows();
+            $("#masterselect .contacthead").each(function(i) {
+                var id = $(this).attr("id").replace("contacthead-","");
+                // add select all links to each column
+                var selectAllBtn = $("<span id='"+id+"'>Select All Fields</span>").button().click(function() {
+                    var id = $(this).attr("id");
+                    $("input.field-"+id).click();
+                });
+                var selectAll = $("<div style='text-align: center; width: 100%' />").append(selectAllBtn);
+                $(this).append(selectAll);
+            });
+        }
+        else {
+            buildInterface();
+            initDB();
+        }
     }
 
     // on master record change, swap sortedRecords[0] with index of selected master column
 
     function buildInterface() {
-
-        $("head").append("<link rel='stylesheet' type='text/css' href='https://erlandsanborn.github.io/userscripts/LuminateMergeMagic/style.css' />");
 
         var header = $("<div id='merge_ui_header' />");
 
@@ -226,10 +242,13 @@
 
         $("#masterselect .data_column").each(function(i) {
             var id = $(this).attr("id").replace("contacthead-","");
+            //var convioId = $(this).find(".contacthead-extra:contains('Convio ID') span").text().trim());
             var createdDate = Date.parse($(this).find(".contacthead-extra:contains('Created Date') span").text().trim());
             var user = $(this).find(".contacthead-extra:contains('Created By ID') span").text().trim();
             var onlineRecord = ( user == "Integration User" || user == "Convio Connector" );
             var masterBtn = $(this).find(".mergeChoice");
+            var LCRMContactLink = $("<div align='center'><a target='_blank' href='/" + id + "' >LCRM Record</a></div>");
+            var LOContactLink = $("<a target='_blank' style='text-align: center;'>LO Record</a>").attr("href", "");
 
             var record = {
                 recordId : id,
@@ -251,6 +270,7 @@
             });
             var selectAll = $("<div style='text-align: center; width: 100%' />").append(selectAllBtn);
             $(this).append(selectAll);
+            $(this).append(LCRMContactLink);
         });
 
         // add True to check box cells, for sorting...
